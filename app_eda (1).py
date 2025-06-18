@@ -219,8 +219,28 @@ class EDA:
 ])
 
 with tabs[0]:
+    with tabs[0]:
     st.header("🔍 기초 통계")
-    # → 여기에 결측치·중복 확인, df.info(), df.describe() 코드 추가
+
+    # 1) 결측치 개수 확인
+    st.subheader("결측치 개수")
+    missing = df.isnull().sum()
+    st.bar_chart(missing)
+
+    # 2) 중복 행 개수 확인
+    duplicates = df.duplicated().sum()
+    st.write(f"- 중복 행 개수: {duplicates}개")
+
+    # 3) 데이터 구조 출력
+    st.subheader("데이터 구조 (df.info())")
+    import io  # 파일 상단에 이미 import 돼 있을 거예요
+    buffer = io.StringIO()
+    df.info(buf=buffer)
+    st.text(buffer.getvalue())
+
+    # 4) 기초 통계량 출력
+    st.subheader("기초 통계량 (df.describe())")
+    st.dataframe(df.describe())
 
 with tabs[1]:
     st.header("📈 연도별 추이")
