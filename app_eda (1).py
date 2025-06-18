@@ -55,8 +55,8 @@ class Home:
                   - `연도`: 연도  
                   - `지역`: 지역명  
                   - `인구`: 인구 수  
-                  - `출생아수(명)`: 출생아 수  
-                  - `사망자수(명)`: 사망자 수  
+                  - `출생아수`: 출생아 수  
+                  - `사망자수`: 사망자 수  
                 """)
 
 # ---------------------
@@ -194,67 +194,79 @@ class Logout:
         st.rerun()
 
 # ---------------------
-# EDA 페이지 클래스 (수정: 탭 강제 표시 + 디버깅)
+# EDA 페이지 클래스 (수정: 데이터 매핑 + 탭 강제 표시)
 # ---------------------
 class EDA:
     def __init__(self):
         st.title("📊 Population Trends EDA")
         uploaded = st.file_uploader("Upload population_trends.csv", type="csv", key="pop_file")
         
-        # 데이터 로드 및 디버깅
+        # 데이터 로드 및 전처리
         if uploaded:
             try:
                 df = pd.read_csv(uploaded, encoding='utf-8')
                 st.write("Loaded Data Sample:", df.head())  # 디버깅 출력
+                
+                # 열 이름 매핑 (스크린샷 기반)
+                df = df.rename(columns={
+                    '연도': '연도',
+                    '지역': '지역',
+                    '인구': '인구',
+                    '출생아수': '출생아수(명)',  # 스크린샷에서 '(명)' 없음 반영
+                    '사망자수': '사망자수(명)'   # 스크린샷에서 '(명)' 없음 반영
+                })
+                
                 df.replace("-", 0, inplace=True)
                 for col in ['인구', '출생아수(명)', '사망자수(명)']:
                     df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
             except Exception as e:
                 st.error(f"Error loading data: {e}")
-                return
+                df = None
 
-        # 탭 강제 생성 (데이터 여부와 상관없이 표시)
+        # 탭 강제 생성
         tabs = st.tabs(["Basic Statistics", "Yearly Trends", "Regional Analysis", "Change Analysis", "Visualization"])
 
         # 1. 기초 통계
         with tabs[0]:
             st.header("🔍 Basic Statistics")
-            if 'df' in locals():
+            if 'df' in locals() and df is not None:
                 st.write("Data loaded successfully. Check sample above.")
+                st.write("Missing Values:", df.isnull().sum())
+                st.write("Duplicate Rows:", df.duplicated().sum())
             else:
-                st.write("No data loaded yet. Please upload a file.")
+                st.write("No data loaded yet. Please check the file or error message.")
 
         # 2. 연도별 추이
         with tabs[1]:
             st.header("📈 Yearly Trends")
-            if 'df' in locals():
+            if 'df' in locals() and df is not None:
                 st.write("Yearly trend will be plotted here with data.")
             else:
-                st.write("No data to display. Upload a file.")
+                st.write("No data to display. Upload a valid file.")
 
         # 3. 지역별 분석
         with tabs[2]:
             st.header("🌐 Regional Analysis")
-            if 'df' in locals():
+            if 'df' in locals() and df is not None:
                 st.write("Regional analysis will be shown here.")
             else:
-                st.write("No data to display. Upload a file.")
+                st.write("No data to display. Upload a valid file.")
 
         # 4. 변화량 분석
         with tabs[3]:
             st.header("📊 Change Analysis")
-            if 'df' in locals():
+            if 'df' in locals() and df is not None:
                 st.write("Change analysis will be displayed here.")
             else:
-                st.write("No data to display. Upload a file.")
+                st.write("No data to display. Upload a valid file.")
 
         # 5. 시각화
         with tabs[4]:
             st.header("🎨 Visualization")
-            if 'df' in locals():
+            if 'df' in locals() and df is not None:
                 st.write("Visualization will be rendered here.")
             else:
-                st.write("No data to display. Upload a file.")
+                st.write("No data to display. Upload a valid file.")
 
 # ---------------------
 # 페이지 객체 생성
