@@ -202,60 +202,67 @@ class Logout:
 # ---------------------
 class EDA:
     def __init__(self):
-        st.title("📊 Bike Sharing Demand EDA")
-        uploaded = st.file_uploader("데이터셋 업로드 (train.csv)", type="csv")
+        st.title("📊 Population Trends EDA")
+        uploaded = st.file_uploader("데이터셋 업로드 (population_trends.csv)", type="csv")
         if not uploaded:
-            st.info("train.csv 파일을 업로드 해주세요.")
+            st.info("population_trends.csv 파일을 업로드 해주세요.")
             return
 
+        # CSV 읽기
         df = pd.read_csv(uploaded, encoding='utf-8')
 
+        # 탭 구조 선언
         tabs = st.tabs([
-    "기초 통계",     # tabs[0]
-    "연도별 추이",   # tabs[1]
-    "지역별 분석",   # tabs[2]
-    "변화량 분석",   # tabs[3]
-    "시각화"         # tabs[4]
-])
+            "기초 통계",     # tabs[0]
+            "연도별 추이",   # tabs[1]
+            "지역별 분석",   # tabs[2]
+            "변화량 분석",   # tabs[3]
+            "시각화"         # tabs[4]
+        ])
 
-with tabs[0]:
-    st.header("🔍 기초 통계")
+        # 1) 기초 통계 탭
+        with tabs[0]:
+            st.header("🔍 기초 통계")
 
-    # 1) 결측치 개수 확인
-    st.subheader("결측치 개수")
-    missing = df.isnull().sum()
-    st.bar_chart(missing)
+            # 1. 결측치 개수 확인
+            st.subheader("결측치 개수")
+            missing = df.isnull().sum()
+            st.bar_chart(missing)
 
-    # 2) 중복 행 개수 확인
-    duplicates = df.duplicated().sum()
-    st.write(f"- 중복 행 개수: {duplicates}개")
+            # 2. 중복 행 개수 확인
+            duplicates = df.duplicated().sum()
+            st.write(f"- 중복 행 개수: {duplicates}개")
 
-    # 3) 데이터 구조 출력
-    st.subheader("데이터 구조 (df.info())")
-    import io  # 파일 상단에 이미 import 돼 있을 거예요
-    buffer = io.StringIO()
-    df.info(buf=buffer)
-    st.text(buffer.getvalue())
+            # 3. 데이터 구조 (df.info())
+            st.subheader("데이터 구조 (df.info())")
+            import io
+            buffer = io.StringIO()
+            df.info(buf=buffer)
+            st.text(buffer.getvalue())
 
-    # 4) 기초 통계량 출력
-    st.subheader("기초 통계량 (df.describe())")
-    st.dataframe(df.describe())
+            # 4. 기초 통계량 (df.describe())
+            st.subheader("기초 통계량 (df.describe())")
+            st.dataframe(df.describe())
 
-with tabs[1]:
-    st.header("📈 연도별 추이")
-    # → 전국 필터링, 연도별 인구 그래프, 2035년 예측 코드 추가
+        # 2) 연도별 추이 탭
+        with tabs[1]:
+            st.header("📈 연도별 추이")
+            # TODO: 전국 필터링, 연도별 인구 그래프, 예측 코드 추가
 
-with tabs[2]:
-    st.header("🗺️ 지역별 분석")
-    # → 최근 5년 인구 변화량, 변화율 그래프 코드 추가
+        # 3) 지역별 분석 탭
+        with tabs[2]:
+            st.header("🗺️ 지역별 분석")
+            # TODO: 최근 5년 변화량·변화율 그래프 코드 추가
 
-with tabs[3]:
-    st.header("⚖️ 변화량 분석")
-    # → 연도별 diff 계산, 상위 100개 표·컬러바 코드 추가
+        # 4) 변화량 분석 탭
+        with tabs[3]:
+            st.header("⚖️ 변화량 분석")
+            # TODO: 연도별 diff, 상위 100개 표 코드 추가
 
-with tabs[4]:
-    st.header("🎨 시각화")
-    # → 피벗 테이블, 누적 영역 그래프 코드 추가
+        # 5) 시각화 탭
+        with tabs[4]:
+            st.header("🎨 시각화")
+            # TODO: 피벗 테이블, 누적 영역 그래프 코드 추가
 
         tabs = st.tabs([
             "1. 목적 & 절차",
