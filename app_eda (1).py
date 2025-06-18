@@ -46,17 +46,21 @@ class Home:
         if st.session_state.get("logged_in"):
             st.success(f"{st.session_state.get('user_email')}님 환영합니다.")
 
+        # Kaggle 데이터셋 출처 및 소개
         st.markdown("""
                 ---
-                **Population Trends Analysis**  
-                - 데이터: population_trends.csv  
-                - 설명: 대한민국 지역별 인구, 출생아수, 사망자수 데이터를 분석하여 연도별·지역별 추이를 파악합니다.  
-                - 주요 변수:  
-                  - `연도`: 연도  
-                  - `지역`: 지역명  
-                  - `인구`: 인구 수  
-                  - `출생아수`: 출생아 수  
-                  - `사망자수`: 사망자 수  
+                ### **Regional Population Trends 데이터셋**  
+                - **제공처**: 대한민국 통계청 기반 공개 인구 통계 데이터  
+                - **설명**:  
+                전국 및 각 시·도의 연도별 인구, 출생아수, 사망자수를 포함한 시계열 통계로,  
+                인구 구조의 변화 및 지역별 인구 흐름을 분석하는 데 활용됨  
+                - **주요 변수**:  
+                - `연도`: 기준 연도  
+                - `지역`: 지역명  
+                - `인구`: 총 인구 수  
+                - `출생아수(명)`: 출생자 수  
+                - `사망자수(명)`: 사망자 수  
+                
                 """)
 
 # ---------------------
@@ -194,79 +198,116 @@ class Logout:
         st.rerun()
 
 # ---------------------
-# EDA 페이지 클래스 (수정: 데이터 매핑 + 탭 강제 표시)
+# EDA 페이지 클래스
 # ---------------------
-class EDA:
+class PopulationEDA:
     def __init__(self):
-        st.title("📊 Population Trends EDA")
-        uploaded = st.file_uploader("Upload population_trends.csv", type="csv", key="pop_file")
-        
-        # 데이터 로드 및 전처리
-        if uploaded:
-            try:
-                df = pd.read_csv(uploaded, encoding='utf-8')
-                st.write("Loaded Data Sample:", df.head())  # 디버깅 출력
-                
-                # 열 이름 매핑 (스크린샷 기반)
-                df = df.rename(columns={
-                    '연도': '연도',
-                    '지역': '지역',
-                    '인구': '인구',
-                    '출생아수': '출생아수(명)',  # 스크린샷에서 '(명)' 없음 반영
-                    '사망자수': '사망자수(명)'   # 스크린샷에서 '(명)' 없음 반영
-                })
-                
-                df.replace("-", 0, inplace=True)
-                for col in ['인구', '출생아수(명)', '사망자수(명)']:
-                    df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-            except Exception as e:
-                st.error(f"Error loading data: {e}")
-                df = None
+        st.header("👥 인구 데이터 EDA")
+        uploaded = st.file_uploader("population_trends.csv 파일 업로드", type="csv")
+        if not uploaded:
+            st.info("CSV 파일을 업로드해주세요.")
+            return
 
-        # 탭 강제 생성
-        tabs = st.tabs(["Basic Statistics", "Yearly Trends", "Regional Analysis", "Change Analysis", "Visualization"])
+        df = pd.read_csv(uploaded)
+        df.replace('-', 0, inplace=True)
+        df[['인구', '출생아수(명)', '사망자수(명)']] = df[['인구', '출생아수(명)', '사망자수(명)']].apply(pd.to_numeric)
 
-        # 1. 기초 통계
+        # 지역명 영어 변환 매핑
+        region_map = {
+            '서울': 'Seoul', '부산': 'Busan', '대구': 'Daegu', '인천': 'Incheon',
+            '광주': 'Gwangju', '대전': 'Daejeon', '울산': 'Ulsan', '세종': 'Sejong',
+            '경기': 'Gyeonggi', '강원': 'Gangwon', '충북': 'Chungbuk', '충남': 'Chungnam',
+            '전북': 'Jeonbuk', '전남': 'Jeonnam', '경북': 'Gyeongbuk', '경남': 'Gyeongnam',
+            '제주': 'Jeju', '전국': 'National'
+        }
+        df['영문지역'] = df['지역'].map(region_map)
+
+        tabs = st.tabs(["기초 통계", "연도별 추이", "지역별 분석", "변화량 분석", "시각화"])
+
         with tabs[0]:
-            st.header("🔍 Basic Statistics")
-            if 'df' in locals() and df is not None:
-                st.write("Data loaded successfully. Check sample above.")
-                st.write("Missing Values:", df.isnull().sum())
-                st.write("Duplicate Rows:", df.duplicated().sum())
-            else:
-                st.write("No data loaded yet. Please check the file or error message.")
+            st.subheader("📌 기초 통계")
+            buffer = io.StringIO()
+            df.info(buf=buffer)
+            st.text(buffer.getvalue())
+            st.dataframe(df.describe())
 
-        # 2. 연도별 추이
         with tabs[1]:
-            st.header("📈 Yearly Trends")
-            if 'df' in locals() and df is not None:
-                st.write("Yearly trend will be plotted here with data.")
-            else:
-                st.write("No data to display. Upload a valid file.")
+            st.subheader("📈 연도별 전체 인구 추이")
+            national_df = df[df['지역'] == '전국']
+            recent = national_df.tail(3)
+            fig, ax = plt.subplots(figsize=(10, 4))
+            sns.lineplot(x='연도', y='인구', data=national_df, marker='o', ax=ax)
+            avg_delta = (recent['출생아수(명)'].mean() - recent['사망자수(명)'].mean())
+            pred_2035 = national_df.iloc[-1]['인구'] + avg_delta * (2035 - national_df['연도'].max())
+            ax.axhline(y=pred_2035, color='r', linestyle='--')
+            ax.text(2034, pred_2035, f"Predicted 2035: {int(pred_2035):,}", color='red')
+            ax.set_title("Population Trend")
+            ax.set_xlabel("Year")
+            ax.set_ylabel("Population")
+            st.pyplot(fig)
 
-        # 3. 지역별 분석
+            
+
         with tabs[2]:
-            st.header("🌐 Regional Analysis")
-            if 'df' in locals() and df is not None:
-                st.write("Regional analysis will be shown here.")
-            else:
-                st.write("No data to display. Upload a valid file.")
+            st.subheader("📊 지역별 최근 5년 인구 변화량")
+            latest_year = df['연도'].max()
+            recent_5 = df[df['연도'].between(latest_year - 4, latest_year)]
+            pivot = recent_5.pivot(index='연도', columns='영문지역', values='인구')
+            delta = pivot.loc[latest_year] - pivot.loc[latest_year - 4]
+            delta = delta.drop("National").sort_values(ascending=False)
 
-        # 4. 변화량 분석
+            fig1, ax1 = plt.subplots()
+            sns.barplot(x=delta.values / 1000, y=delta.index, ax=ax1)
+            ax1.bar_label(ax1.containers[0], fmt='%.0f')
+            ax1.set_title("Population Change (Last 5 Years)")
+            ax1.set_xlabel("Change (Thousands)")
+            ax1.set_ylabel("Region")
+            st.pyplot(fig1)
+
+            rate = (pivot.loc[latest_year] / pivot.loc[latest_year - 4] - 1).drop("National") * 100
+            fig2, ax2 = plt.subplots()
+            sns.barplot(x=rate.values, y=rate.index, ax=ax2)
+            ax2.set_title("Population Growth Rate (%)")
+            ax2.set_ylabel("Region")
+            st.pyplot(fig2)
+
+            st.markdown(
+                "> **해설:** 상위 지역들은 최근 5년간 유입 인구가 상대적으로 많거나, 지속적인 개발이 이뤄진 지역일 가능성이 높습니다."
+                "> 반대로 하위 지역은 고령화나 인구 유출이 지속되었을 가능성이 있습니다."
+                "> 변화율(%)을 함께 확인함으로써 단순 인구 변화량보다 더 명확한 성장/감소 흐름을 파악할 수 있습니다."
+            )
+
         with tabs[3]:
-            st.header("📊 Change Analysis")
-            if 'df' in locals() and df is not None:
-                st.write("Change analysis will be displayed here.")
-            else:
-                st.write("No data to display. Upload a valid file.")
+            st.subheader("🔍 연도별 증감 상위 사례")
+            df_no_total = df[df['지역'] != '전국']
+            df_no_total['증감'] = df_no_total.groupby('지역')['인구'].diff()
+            top100 = df_no_total.sort_values(by='증감', ascending=False).head(100).copy()
+            top100['증감'] = top100['증감'].astype(int)
+            top100['증감'] = top100['증감'].map(lambda x: f"{x:,}")
+            styled = top100.style.applymap(
+                lambda v: 'background-color: #add8e6' if isinstance(v, str) and '-' not in v else 
+                          'background-color: #f4cccc' if isinstance(v, str) and '-' in v else '',
+                subset=['증감']
+            )
+            st.dataframe(styled)
 
-        # 5. 시각화
         with tabs[4]:
-            st.header("🎨 Visualization")
-            if 'df' in locals() and df is not None:
-                st.write("Visualization will be rendered here.")
-            else:
-                st.write("No data to display. Upload a valid file.")
+            st.subheader("📊 연도-지역 누적 영역 그래프")
+            pivot = df.pivot(index='연도', columns='영문지역', values='인구').fillna(0)
+            pivot = pivot.drop(columns='National', errors='ignore')
+
+            sns.set_theme(style="whitegrid")
+            fig, ax = plt.subplots(figsize=(12, 6))
+            x = pivot.index.values
+            y = pivot.values.T  # shape: (지역 수, 연도 수)
+            labels = pivot.columns.tolist()
+            ax.stackplot(x, y, labels=labels, alpha=0.9)
+            ax.set_title("Population by Region (Stacked Area)")
+            ax.set_xlabel("Year")
+            ax.set_ylabel("Population")
+            ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1), title="Region")
+            st.pyplot(fig)
+
 
 # ---------------------
 # 페이지 객체 생성
@@ -277,13 +318,14 @@ Page_FindPW   = st.Page(FindPassword, title="Find PW", icon="🔎", url_path="fi
 Page_Home     = st.Page(lambda: Home(Page_Login, Page_Register, Page_FindPW), title="Home", icon="🏠", url_path="home", default=True)
 Page_User     = st.Page(UserInfo, title="My Info", icon="👤", url_path="user-info")
 Page_Logout   = st.Page(Logout,   title="Logout",  icon="🔓", url_path="logout")
-Page_EDA      = st.Page(EDA,      title="EDA",     icon="📊", url_path="eda")
+Page_PopulationEDA = st.Page(PopulationEDA, title="인구 분석", icon="👥", url_path="population")
+
 
 # ---------------------
 # 네비게이션 실행
 # ---------------------
 if st.session_state.logged_in:
-    pages = [Page_Home, Page_User, Page_Logout, Page_EDA]
+    pages = [Page_Home, Page_User, Page_Logout, Page_PopulationEDA]
 else:
     pages = [Page_Home, Page_Login, Page_Register, Page_FindPW]
 
