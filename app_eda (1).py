@@ -203,68 +203,74 @@ class Logout:
 class EDA:
     def __init__(self):
         st.title("📊 Population Trends EDA")
-        uploaded = st.file_uploader("데이터셋 업로드 (population_trends.csv)", type="csv")
-        if not uploaded:
-            st.info("population_trends.csv 파일을 업로드 해주세요.")
+
+        # -----------------------------
+        # 1. 지역별 인구 분석용 탭
+        # -----------------------------
+        st.header("👥 지역별 인구 분석")
+        uploaded = st.file_uploader("population_trends.csv 파일 업로드", type="csv", key="pop_file")
+        if uploaded:
+            df = pd.read_csv(uploaded, encoding='utf-8')
+            df.replace("-", 0, inplace=True)
+            for col in ['인구', '출생아수(명)', '사망자수(명)']:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+
+            tabs_population = st.tabs([
+                "기초 통계",     # tabs_population[0]
+                "연도별 추이",   # tabs_population[1]
+                "지역별 분석",   # tabs_population[2]
+                "변화량 분석",   # tabs_population[3]
+                "시각화"         # tabs_population[4]
+            ])
+
+            with tabs_population[0]:
+                st.header("🔍 기초 통계")
+                st.subheader("결측치 개수")
+                st.bar_chart(df.isnull().sum())
+                st.subheader("중복 행 개수")
+                st.write(f"- 중복 행 개수: {df.duplicated().sum()}개")
+                st.subheader("데이터 구조 (df.info())")
+                import io
+                buffer = io.StringIO()
+                df.info(buf=buffer)
+                st.text(buffer.getvalue())
+                st.subheader("기초 통계량 (df.describe())")
+                st.dataframe(df.describe())
+
+            # 나머지 탭은 TODO 처리
+            with tabs_population[1]:
+                st.header("📈 연도별 추이")
+                st.info("그래프 코드는 여기 들어갈 예정입니다.")
+
+            with tabs_population[2]:
+                st.header("🗺️ 지역별 분석")
+                st.info("지역별 변화량 그래프 코드 예정")
+
+            with tabs_population[3]:
+                st.header("⚖️ 변화량 분석")
+                st.info("증감 상위 100개 표 코드 예정")
+
+            with tabs_population[4]:
+                st.header("🎨 시각화")
+                st.info("누적 영역 그래프 코드 예정")
+
+        else:
+            st.info("population_trends.csv 파일을 먼저 업로드해주세요.")
+
+        # -----------------------------
+        # 2. Bike Sharing Demand 분석용 탭
+        # -----------------------------
+        st.markdown("---")
+        st.title("🚲 Bike Sharing Demand EDA")
+        uploaded_bike = st.file_uploader("데이터셋 업로드 (train.csv)", type="csv", key="bike_file")
+
+        if not uploaded_bike:
+            st.info("train.csv 파일을 업로드 해주세요.")
             return
 
-        # CSV 읽기
-        df = pd.read_csv(uploaded, encoding='utf-8')
+        df_bike = pd.read_csv(uploaded_bike, parse_dates=['datetime'])
 
-        # 탭 구조 선언
-        tabs = st.tabs([
-            "기초 통계",     # tabs[0]
-            "연도별 추이",   # tabs[1]
-            "지역별 분석",   # tabs[2]
-            "변화량 분석",   # tabs[3]
-            "시각화"         # tabs[4]
-        ])
-
-        # 1) 기초 통계 탭
-        with tabs[0]:
-            st.header("🔍 기초 통계")
-
-            # 1. 결측치 개수 확인
-            st.subheader("결측치 개수")
-            missing = df.isnull().sum()
-            st.bar_chart(missing)
-
-            # 2. 중복 행 개수 확인
-            duplicates = df.duplicated().sum()
-            st.write(f"- 중복 행 개수: {duplicates}개")
-
-            # 3. 데이터 구조 (df.info())
-            st.subheader("데이터 구조 (df.info())")
-            import io
-            buffer = io.StringIO()
-            df.info(buf=buffer)
-            st.text(buffer.getvalue())
-
-            # 4. 기초 통계량 (df.describe())
-            st.subheader("기초 통계량 (df.describe())")
-            st.dataframe(df.describe())
-
-        # 2) 연도별 추이 탭
-        with tabs[1]:
-            st.header("📈 연도별 추이")
-            # TODO: 전국 필터링, 연도별 인구 그래프, 예측 코드 추가
-
-        # 3) 지역별 분석 탭
-        with tabs[2]:
-            st.header("🗺️ 지역별 분석")
-            # TODO: 최근 5년 변화량·변화율 그래프 코드 추가
-
-        # 4) 변화량 분석 탭
-        with tabs[3]:
-            st.header("⚖️ 변화량 분석")
-            # TODO: 연도별 diff, 상위 100개 표 코드 추가
-
-        # 5) 시각화 탭
-        with tabs[4]:
-            st.header("🎨 시각화")
-            # TODO: 피벗 테이블, 누적 영역 그래프 코드 추가
-
-        tabs = st.tabs([
+        tabs_bike = st.tabs([
             "1. 목적 & 절차",
             "2. 데이터셋 설명",
             "3. 데이터 로드 & 품질 체크",
@@ -275,8 +281,7 @@ class EDA:
             "8. 로그 변환"
         ])
 
-        # 1. 목적 & 분석 절차
-        with tabs[0]:
+        with tabs_bike[0]:
             st.header("🔭 목적 & 분석 절차")
             st.markdown("""
             **목적**: Bike Sharing Demand 데이터셋을 탐색하고,
@@ -291,6 +296,7 @@ class EDA:
             6. 이상치 탐지 및 제거  
             7. 로그 변환을 통한 분포 안정화
             """)
+
 
         # 2. 데이터셋 설명
         with tabs[1]:
