@@ -219,7 +219,6 @@ class EDA:
 ])
 
 with tabs[0]:
-    with tabs[0]:
     st.header("🔍 기초 통계")
 
     # 1) 결측치 개수 확인
