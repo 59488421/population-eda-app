@@ -194,52 +194,67 @@ class Logout:
         st.rerun()
 
 # ---------------------
-# EDA 페이지 클래스 (간소화 및 디버깅)
+# EDA 페이지 클래스 (수정: 탭 강제 표시 + 디버깅)
 # ---------------------
 class EDA:
     def __init__(self):
         st.title("📊 Population Trends EDA")
         uploaded = st.file_uploader("Upload population_trends.csv", type="csv", key="pop_file")
-        if not uploaded:
-            st.info("Please upload population_trends.csv file.")
-            return
+        
+        # 데이터 로드 및 디버깅
+        if uploaded:
+            try:
+                df = pd.read_csv(uploaded, encoding='utf-8')
+                st.write("Loaded Data Sample:", df.head())  # 디버깅 출력
+                df.replace("-", 0, inplace=True)
+                for col in ['인구', '출생아수(명)', '사망자수(명)']:
+                    df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+            except Exception as e:
+                st.error(f"Error loading data: {e}")
+                return
 
-        # 데이터 로드 및 디버깅 출력
-        df = pd.read_csv(uploaded, encoding='utf-8')
-        st.write("Loaded Data Sample:", df.head())  # 디버깅용
-
-        # 전처리
-        df.replace("-", 0, inplace=True)
-        for col in ['인구', '출생아수(명)', '사망자수(명)']:
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-
-        # 기본 탭 생성 (빈 탭으로 시작)
+        # 탭 강제 생성 (데이터 여부와 상관없이 표시)
         tabs = st.tabs(["Basic Statistics", "Yearly Trends", "Regional Analysis", "Change Analysis", "Visualization"])
 
-        # 1. 기초 통계 (간단한 내용)
+        # 1. 기초 통계
         with tabs[0]:
             st.header("🔍 Basic Statistics")
-            st.write("Data loaded successfully. Check sample above.")
+            if 'df' in locals():
+                st.write("Data loaded successfully. Check sample above.")
+            else:
+                st.write("No data loaded yet. Please upload a file.")
 
-        # 2. 연도별 추이 (빈 상태)
+        # 2. 연도별 추이
         with tabs[1]:
             st.header("📈 Yearly Trends")
-            st.write("Yearly trend will be plotted here.")
+            if 'df' in locals():
+                st.write("Yearly trend will be plotted here with data.")
+            else:
+                st.write("No data to display. Upload a file.")
 
-        # 3. 지역별 분석 (빈 상태)
+        # 3. 지역별 분석
         with tabs[2]:
             st.header("🌐 Regional Analysis")
-            st.write("Regional analysis will be shown here.")
+            if 'df' in locals():
+                st.write("Regional analysis will be shown here.")
+            else:
+                st.write("No data to display. Upload a file.")
 
-        # 4. 변화량 분석 (빈 상태)
+        # 4. 변화량 분석
         with tabs[3]:
             st.header("📊 Change Analysis")
-            st.write("Change analysis will be displayed here.")
+            if 'df' in locals():
+                st.write("Change analysis will be displayed here.")
+            else:
+                st.write("No data to display. Upload a file.")
 
-        # 5. 시각화 (빈 상태)
+        # 5. 시각화
         with tabs[4]:
             st.header("🎨 Visualization")
-            st.write("Visualization will be rendered here.")
+            if 'df' in locals():
+                st.write("Visualization will be rendered here.")
+            else:
+                st.write("No data to display. Upload a file.")
 
 # ---------------------
 # 페이지 객체 생성
