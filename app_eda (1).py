@@ -7,7 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# ---------------------
 # Firebase 설정
+# ---------------------
 firebase_config = {
     "apiKey": "AIzaSyCswFmrOGU3FyLYxwbNPTp7hvQxLfTPIZw",
     "authDomain": "sw-projects-49798.firebaseapp.com",
@@ -23,7 +25,9 @@ auth = firebase.auth()
 firestore = firebase.database()
 storage = firebase.storage()
 
+# ---------------------
 # 세션 상태 초기화
+# ---------------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.user_email = ""
@@ -33,7 +37,9 @@ if "logged_in" not in st.session_state:
     st.session_state.user_phone = ""
     st.session_state.profile_image_url = ""
 
+# ---------------------
 # 홈 페이지 클래스
+# ---------------------
 class Home:
     def __init__(self, login_page, register_page, findpw_page):
         st.title("🏠 Home")
@@ -57,19 +63,23 @@ class Home:
                   - `casual`, `registered`, `count`: 비등록·등록·전체 대여 횟수  
                 """)
 
-        # 인구 분석에 대한 설명 추가
+        # 인구 분석 소개 추가
         st.markdown("""
                 ---
-                **Population Analysis**  
-                - 제공처: [Population Data Source](https://example.com)  
-                - 설명: 인구 데이터는 지역별 인구 분포 및 변화를 분석하는 데 사용됩니다.  
+                **Population Trends Analysis**  
+                - 데이터: population_trends.csv  
+                - 설명: 대한민국 지역별 인구, 출생아수, 사망자수 데이터를 분석하여 연도별·지역별 추이를 파악합니다.  
                 - 주요 변수:  
-                  - `region`: 지역  
-                  - `population`: 인구 수  
-                  - `year`: 연도  
+                  - `연도`: 연도  
+                  - `지역`: 지역명  
+                  - `인구`: 인구 수  
+                  - `출생아수(명)`: 출생아 수  
+                  - `사망자수(명)`: 사망자 수  
                 """)
 
+# ---------------------
 # 로그인 페이지 클래스
+# ---------------------
 class Login:
     def __init__(self):
         st.title("🔐 로그인")
@@ -95,7 +105,9 @@ class Login:
             except Exception:
                 st.error("로그인 실패")
 
+# ---------------------
 # 회원가입 페이지 클래스
+# ---------------------
 class Register:
     def __init__(self, login_page_url):
         st.title("📝 회원가입")
@@ -122,7 +134,9 @@ class Register:
             except Exception:
                 st.error("회원가입 실패")
 
+# ---------------------
 # 비밀번호 찾기 페이지 클래스
+# ---------------------
 class FindPassword:
     def __init__(self):
         st.title("🔎 비밀번호 찾기")
@@ -136,7 +150,9 @@ class FindPassword:
             except:
                 st.error("이메일 전송 실패")
 
+# ---------------------
 # 사용자 정보 수정 페이지 클래스
+# ---------------------
 class UserInfo:
     def __init__(self):
         st.title("👤 사용자 정보")
@@ -179,7 +195,9 @@ class UserInfo:
             time.sleep(1)
             st.rerun()
 
+# ---------------------
 # 로그아웃 페이지 클래스
+# ---------------------
 class Logout:
     def __init__(self):
         st.session_state.logged_in = False
@@ -193,47 +211,137 @@ class Logout:
         time.sleep(1)
         st.rerun()
 
-# EDA 페이지 클래스
+# ---------------------
+# EDA 페이지 클래스 (수정: 지역별 인구 분석)
+# ---------------------
 class EDA:
     def __init__(self):
-        st.title("📊 Population Analysis EDA")
-        uploaded = st.file_uploader("Upload population data (CSV)", type="csv")
-        if uploaded:
-            self.data = pd.read_csv(uploaded)
-            self.population_analysis()
-        else:
-            st.info("Please upload a population data CSV file.")
+        st.title("📊 Population Trends EDA")
+        uploaded = st.file_uploader("Upload population_trends.csv", type="csv", key="pop_file")
+        if not uploaded:
+            st.info("Please upload population_trends.csv file.")
+            return
 
-    def population_analysis(self):
-        """Perform population data analysis and visualization."""
-        if self.data is not None:
-            st.subheader("Population Data Analysis")
-            # Display data preview
-            st.write("Data Preview", self.data.head())
-            # Display summary statistics
-            st.write("Summary Statistics", self.data.describe())
+        # 데이터 로드 및 전처리
+        df = pd.read_csv(uploaded, encoding='utf-8')
+        df.replace("-", 0, inplace=True)  # '세종'의 '-'를 0으로 치환
+        for col in ['인구', '출생아수(명)', '사망자수(명)']:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
 
-            # Example: Population distribution by region
-            if 'region' in self.data.columns and 'population' in self.data.columns:
-                fig, ax = plt.subplots()
-                sns.barplot(x='region', y='population', data=self.data, ax=ax)
-                ax.set_title("Population by Region")
-                ax.set_xlabel("Region")
-                ax.set_ylabel("Population")
-                st.pyplot(fig)
+        # 탭 생성
+        tabs = st.tabs([
+            "Basic Statistics",
+            "Yearly Trends",
+            "Regional Analysis",
+            "Change Analysis",
+            "Visualization"
+        ])
 
-            # Example: Population trend over years
-            if 'year' in self.data.columns and 'population' in self.data.columns:
-                fig, ax = plt.subplots()
-                sns.lineplot(x='year', y='population', data=self.data, ax=ax)
-                ax.set_title("Population Trend Over Years")
-                ax.set_xlabel("Year")
-                ax.set_ylabel("Population")
-                st.pyplot(fig)
-        else:
-            st.error("No data available. Please upload a CSV file.")
+        # 1. 기초 통계
+        with tabs[0]:
+            st.header("🔍 Basic Statistics")
+            st.subheader("Missing Values")
+            st.bar_chart(df.isnull().sum())
+            st.subheader("Duplicate Rows")
+            st.write(f"- Number of duplicate rows: {df.duplicated().sum()}")
+            st.subheader("Data Structure (df.info())")
+            buffer = io.StringIO()
+            df.info(buf=buffer)
+            st.text(buffer.getvalue())
+            st.subheader("Summary Statistics (df.describe())")
+            st.dataframe(df.describe())
 
+        # 2. 연도별 추이
+        with tabs[1]:
+            st.header("📈 Yearly Trends")
+            # 전국 데이터 필터링
+            df_nation = df[df['지역'] == '전국'].copy()
+            df_nation_yearly = df_nation.groupby('연도')['인구'].mean().reset_index()
+
+            # 최근 3년(2021-2023) 데이터로 인구 변화율 계산
+            df_recent = df_nation[df_nation['연도'].isin([2021, 2022, 2023])]
+            avg_births = df_recent['출생아수(명)'].mean()
+            avg_deaths = df_recent['사망자수(명)'].mean()
+            avg_change = avg_births - avg_deaths
+
+            # 2023년 인구
+            pop_2023 = df_nation[df_nation['연도'] == 2023]['인구'].iloc[0] if not df_nation.empty and 2023 in df_nation['연도'].values else 0
+
+            # 2035년 예측
+            years_to_2035 = 2035 - 2023
+            pop_2035 = pop_2023 + avg_change * years_to_2035 if pop_2023 > 0 else 0
+
+            # 그래프
+            fig, ax = plt.subplots(figsize=(10, 6))
+            sns.lineplot(x='연도', y='인구', data=df_nation_yearly, marker='o', ax=ax)
+            ax.scatter([2035], [pop_2035], color='red', s=100, label='2035 Prediction')
+            ax.set_title("Nationwide Population Trend and 2035 Prediction")
+            ax.set_xlabel("Year")
+            ax.set_ylabel("Population")
+            ax.legend()
+            ax.grid(True)
+            st.pyplot(fig)
+
+        # 3. 지역별 분석
+        with tabs[2]:
+            st.header("🌐 Regional Analysis")
+            # 최근 5년 데이터
+            recent_years = df['연도'].max() - 4
+            df_recent = df[df['연도'] >= recent_years].copy()
+
+            # 인구 변화량 계산
+            df_change = df_recent.groupby('지역')['인구'].diff().groupby(df_recent['지역']).mean().reset_index()
+            df_change = df_change[df_change['지역'] != '전국'].sort_values('인구', ascending=False)
+
+            # 변화량 그래프
+            fig1, ax1 = plt.subplots(figsize=(10, 6))
+            sns.barplot(x='인구', y='지역', data=df_change, ax=ax1)
+            ax1.set_xlabel("Population Change (thousands)")
+            ax1.set_ylabel("Region")
+            for i, v in enumerate(df_change['인구']):
+                ax1.text(v, i, f'{v/1000:.1f}k', va='center')
+            st.pyplot(fig1)
+
+            # 변화율 그래프
+            df_rate = (df_recent.groupby('지역')['인구'].pct_change().groupby(df_recent['지역']).mean() * 100).reset_index()
+            df_rate = df_rate[df_rate['지역'] != '전국'].sort_values('인구', ascending=False)
+            fig2, ax2 = plt.subplots(figsize=(10, 6))
+            sns.barplot(x='인구', y='지역', data=df_rate, ax=ax2)
+            ax2.set_xlabel("Change Rate (%)")
+            ax2.set_ylabel("Region")
+            for i, v in enumerate(df_rate['인구']):
+                ax2.text(v, i, f'{v:.1f}%', va='center')
+            st.pyplot(fig2)
+
+        # 4. 변화량 분석
+        with tabs[3]:
+            st.header("📊 Change Analysis")
+            # 연도별 인구 증감 계산
+            df['인구_증감'] = df.groupby('지역')['인구'].diff()
+            top_changes = df[df['지역'] != '전국'].nlargest(100, '인구_증감')[['연도', '지역', '인구_증감']]
+
+            # 색상 처리 (증가: 파랑, 감소: 빨강)
+            def color_val(val):
+                color = 'blue' if val > 0 else 'red'
+                return f'color: {color}'
+
+            st.dataframe(top_changes.style.applymap(color_val, subset=['인구_증감']).format({'인구_증감': '{:,.0f}'}))
+
+        # 5. 시각화 (누적 영역 그래프)
+        with tabs[4]:
+            st.header("🎨 Visualization")
+            pivot_df = df.pivot_table(values='인구', index='연도', columns='지역', aggfunc='mean')
+            fig, ax = plt.subplots(figsize=(10, 6))
+            pivot_df.plot(kind='area', ax=ax, alpha=0.5)
+            ax.set_title("Population Trends by Region")
+            ax.set_xlabel("Year")
+            ax.set_ylabel("Population")
+            ax.legend(title="Region")
+            st.pyplot(fig)
+
+# ---------------------
 # 페이지 객체 생성
+# ---------------------
 Page_Login    = st.Page(Login,    title="Login",    icon="🔐", url_path="login")
 Page_Register = st.Page(lambda: Register(Page_Login.url_path), title="Register", icon="📝", url_path="register")
 Page_FindPW   = st.Page(FindPassword, title="Find PW", icon="🔎", url_path="find-password")
@@ -242,7 +350,9 @@ Page_User     = st.Page(UserInfo, title="My Info", icon="👤", url_path="user-i
 Page_Logout   = st.Page(Logout,   title="Logout",  icon="🔓", url_path="logout")
 Page_EDA      = st.Page(EDA,      title="EDA",     icon="📊", url_path="eda")
 
+# ---------------------
 # 네비게이션 실행
+# ---------------------
 if st.session_state.logged_in:
     pages = [Page_Home, Page_User, Page_Logout, Page_EDA]
 else:
